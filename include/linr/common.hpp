@@ -18,6 +18,9 @@ namespace linr
     template <typename... Ts>
     using Tup = std::tuple<Ts...>;
 
+    template <typename T, std::size_t N>
+    using Arr = std::array<T, N>;
+
     template <typename T>
     using Opt = std::optional<T>;
 
@@ -132,6 +135,9 @@ namespace linr
 
     template <typename... Ts>
     using Results = Result<Tup<Ts...>>;
+
+    template <typename T, std::size_t N>
+    using AResults = Result<Arr<T, N>>;
 
     template <typename T, typename... Args>
     Result<T> make_result(Args&&... args) noexcept

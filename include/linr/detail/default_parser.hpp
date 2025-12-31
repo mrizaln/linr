@@ -26,7 +26,7 @@ namespace linr::detail
     {
         Result<bool> parse(Str str) const noexcept
         {
-            using Buf = std::array<char, 6>;
+            using Buf = Arr<char, 6>;
 
             constexpr auto lit_false = Buf{ "false" };
             constexpr auto lit_true  = Buf{ "true" };

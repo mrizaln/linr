@@ -11,7 +11,6 @@ namespace linr::detail
         requires (sizeof...(Ts) >= 1) and (std::movable<Ts> and ...)
     Results<Ts...> read_impl(R& reader, Opt<Str> prompt, char delim) noexcept
     {
-        // first and foremost, check whether stdin available at all
         if (std::ferror(stdin)) {
             return make_error<Tup<Ts...>>(Error::Unknown);
         }
@@ -30,6 +29,30 @@ namespace linr::detail
             return parse_into_tuple<Ts...>(*parts);
         }
         return make_error<Tup<Ts...>>(Error::InvalidInput);
+    }
+
+    template <Parseable T, std::size_t N, LineReader R>
+        requires (std::movable<T> and N > 0)
+    AResults<T, N> read_impl(R& reader, Opt<Str> prompt, char delim) noexcept
+    {
+        if (std::ferror(stdin)) {
+            return make_error<Arr<T, N>>(Error::Unknown);
+        }
+
+        if (prompt) {
+            std::fwrite(prompt->data(), sizeof(Str::value_type), prompt->size(), stdout);
+        }
+
+        auto line = reader.readline();
+        if (not line) {
+            return make_error<Arr<T, N>>(Error::EndOfFile);
+        }
+
+        auto parts = util::split<N>(line->view(), delim);
+        if (parts) {
+            return parse_array<T, N>(*parts);
+        }
+        return make_error<Arr<T, N>>(Error::InvalidInput);
     }
 }
 

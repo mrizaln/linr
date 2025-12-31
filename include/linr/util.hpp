@@ -4,7 +4,6 @@
 #include "linr/common.hpp"
 
 #include <algorithm>
-#include <array>
 #include <utility>
 
 namespace linr::util
@@ -17,9 +16,9 @@ namespace linr::util
      * @return The array of strings, or an empty optional if the string could not be split.
      */
     template <std::size_t N>
-    constexpr Opt<std::array<Str, N>> split(Str str, char delim) noexcept
+    constexpr Opt<Arr<Str, N>> split(Str str, char delim) noexcept
     {
-        std::array<Str, N> res = {};
+        Arr<Str, N> res = {};
 
         std::size_t i = 0;
         std::size_t j = 0;

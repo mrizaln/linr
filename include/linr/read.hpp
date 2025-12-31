@@ -6,7 +6,7 @@
 namespace linr
 {
     /**
-     * @brief Read multiple values from stdin.
+     * @brief Read multiple values from stdin as tuple.
      *
      * @param prompt The prompt.
      * @param delim Delimiter, only `char` so you can't use unicode.
@@ -50,6 +50,19 @@ namespace linr
             return make_result<std::string>(std::get<0>(std::move(result).value()));
         }
         return make_error<std::string>(result.error());
+    }
+
+    /**
+     * @brief Read multiple values from stdin as array.
+     *
+     * @param prompt The prompt.
+     * @param delim Delimiter, only `char` so you can't use unicode.
+     */
+    template <typename T, std::size_t N>
+    AResults<T, N> read(Opt<Str> prompt = std::nullopt, char delim = ' ') noexcept
+    {
+        auto reader = detail::Reader{};
+        return detail::read_impl<T, N>(reader, prompt, delim);
     }
 }
 

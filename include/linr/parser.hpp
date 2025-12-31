@@ -47,7 +47,7 @@ namespace linr
     }
 
     /**
-     * @brief Helper function that parse span of str directly into tuple
+     * @brief Helper function that parse span of str directly into tuple.
      *
      * @tparam Ts The types to parse.
      * @param values Span of string views, the extent matches the number of types.
@@ -58,13 +58,11 @@ namespace linr
     {
         using Seq = std::index_sequence_for<Ts...>;
 
-        // parse into tuple of Result objects
         const auto multiparse = [&]<std::size_t... Is>(std::index_sequence<Is...>) -> Tup<Result<Ts>...> {
             return { parse<Ts>(values[Is])... };
         };
         auto maybe_result = multiparse(Seq{});
 
-        // check whether any of the values is an error
         auto error = Opt<Error>{};
         util::for_each_tuple(maybe_result, [&]<std::size_t I, typename T>(T& value) {
             if (not error.has_value() and not value) {
@@ -75,11 +73,33 @@ namespace linr
             return make_error<Tup<Ts...>>(error.value());
         }
 
-        // if no error, flatten the tuple and return
         const auto flatten = [&]<std::size_t... Is>(std::index_sequence<Is...>) -> Tup<Ts...> {
             return { std::move(std::get<Is>(maybe_result)).value()... };
         };
         return make_result<Tup<Ts...>>(flatten(Seq{}));
+    }
+
+    /**
+     * @brief Helper function that parse span of str into array.
+     *
+     * @tparam T The type of the element of the array.
+     * @param values Span of string views, the extent matches the number of types.
+     * @return The resulting parsed values as array or an error.
+     */
+    template <typename T, std::size_t N>
+    constexpr AResults<T, N> parse_array(std::span<Str, N> values) noexcept
+    {
+        auto maybe_result = Arr<Result<T>, N>{};
+        for (auto i = 0u; i < N; ++i) {
+            if (auto& result = maybe_result[i] = parse<T>(values[i]); not result) {
+                return make_error<Arr<T, N>>(result.error());
+            }
+        }
+
+        const auto flatten = [&]<std::size_t... Is>(std::index_sequence<Is...>) -> Arr<T, N> {
+            return { std::move(std::get<Is>(maybe_result)).value()... };
+        };
+        return make_result<Arr<T, N>>(flatten(std::make_index_sequence<N>{}));
     }
 }
 
