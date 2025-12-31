@@ -1,12 +1,9 @@
+#include "print.hpp"
+
 #include <linr/buf_read.hpp>
 #include <linr/read.hpp>
 
 #include <format>
-#include <iostream>
-
-// please excuse my use of macro :)
-
-#define println(...) std::cout << std::format(__VA_ARGS__) << '\n'
 
 using linr::read;
 

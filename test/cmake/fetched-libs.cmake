@@ -1,20 +1,12 @@
 set(FETCHCONTENT_QUIET FALSE)
-
 include(FetchContent)
 
-# example:
-# ~~~
-
-# FetchContent_Declare(
-#   vkfw
-#   GIT_REPOSITORY https://github.com/Cvelth/vkfw
-#   GIT_TAG d8bc2f96aa083037ce75b998ec2ac23f9b7782b8)
-# FetchContent_MakeAvailable(vkfw)
-
-# add_library(vkfw INTERFACE)
-# target_include_directories(vkfw INTERFACE ${vkfw_SOURCE_DIR}/include)
-# target_link_libraries(vkfw INTERFACE glfw)
-
-# add_library(fetch::vkfw ALIAS vkfw)
-
-# ~~~
+# ut
+# --
+FetchContent_Declare(
+  ut
+  ULR_HASH SHA256=e51bf1873705819730c3f9d2d397268d1c26128565478e2e65b7d0abb45ea9b1
+  URL https://github.com/boost-ext/ut/archive/refs/tags/v2.3.1.tar.gz
+  DOWNLOAD_EXTRACT_TIMESTAMP ON
+)
+FetchContent_MakeAvailable(ut)

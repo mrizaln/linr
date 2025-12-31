@@ -1,22 +1,25 @@
-cmake_minimum_required(VERSION 3.16)
-project(linr-test VERSION 0.1.0)
+include(cmake/fetched-libs.cmake)
 
-include(cmake/prelude.cmake)
+enable_testing()
 
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
+add_executable(test source/test.cpp)
+target_include_directories(test PRIVATE source)
+target_link_libraries(test PRIVATE Boost::ut linr)
 
-find_package(fmt REQUIRED)
-find_package(ut REQUIRED)
+if(NOT MSVC)
+  # sanitizer
+  target_compile_options(test PRIVATE -Wall -Wextra -Wconversion)
+  target_compile_options(test PRIVATE -fsanitize=address,leak,undefined)
+  target_link_options(test PRIVATE -fsanitize=address,leak,undefined)
+else()
+  target_link_options(test PRIVATE /W4)
+endif()
 
-add_subdirectory(lib/linr)
-
-add_executable(main source/main.cpp)
-target_include_directories(main PRIVATE source)
-target_link_libraries(main PRIVATE fmt::fmt Boost::ut linr)
-target_compile_options(main PRIVATE -Wall -Wextra -Wconversion)
-
-# sanitizer
-target_compile_options(main PRIVATE -fsanitize=address,leak,undefined)
-target_link_options(main PRIVATE -fsanitize=address,leak,undefined)
+add_test(NAME test COMMAND $<TARGET_FILE:test>)
+add_custom_command(
+  TARGET test
+  POST_BUILD
+  COMMAND
+    ${CMAKE_COMMAND} -E cat ${CMAKE_CURRENT_SOURCE_DIR}/test.input |
+    $<TARGET_FILE:test>
+)

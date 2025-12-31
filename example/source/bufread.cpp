@@ -1,7 +1,6 @@
-#include "linr/buf_read.hpp"
+#include "print.hpp"
 
-#include <fmt/core.h>
-#include <fmt/ranges.h>
+#include <linr/buf_read.hpp>
 
 template <typename... Ts>
 auto read_repeat(linr::BufReader& reader, std::string_view prompt, std::string_view fail)
@@ -9,15 +8,15 @@ auto read_repeat(linr::BufReader& reader, std::string_view prompt, std::string_v
     while (true) {
         auto result = reader.read<Ts...>(prompt);
         if (result) {
-            fmt::println("{}", result.value());
+            println("{}", result.value());
             return;
         }
 
         if (result.error() == linr::Error::EndOfFile) {
-            fmt::println("stdin EOF reached!");
+            println("stdin EOF reached!");
             return;
         }
-        fmt::println("{} [{}]", fail, to_string(result.error()));
+        println("{} [{}]", fail, to_string(result.error()));
     }
 }
 

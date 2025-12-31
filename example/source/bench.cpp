@@ -1,21 +1,33 @@
+#include "print.hpp"
+
 #include <linr/buf_read.hpp>
 #include <linr/read.hpp>
-
-#include <CLI/CLI.hpp>
-#include <fmt/core.h>
-#include <fmt/ranges.h>
 
 #include <chrono>
 #include <iostream>
 #include <map>
-#include <print>
+#include <ranges>
 #include <utility>
 
-enum class Bench
+enum class Method
+{
+    Cin,
+    Nonce,
+    Bufread,
+};
+
+enum class Kind
 {
     Int,
     Float,
     Control,    // empty bench, measure overhead
+};
+
+struct Args
+{
+    Method method;
+    Kind   kind;
+    bool   verbose;
 };
 
 // default reader, no buf
@@ -64,14 +76,34 @@ struct EmptyReader
     }
 };
 
-const std::map<std::string, Bench> TYPE_STR{
-    { "int", Bench::Int },
-    { "float", Bench::Float },
-    { "control", Bench::Control },
+const auto kind_str = std::map<std::string, Kind>{
+    { "int", Kind::Int },
+    { "float", Kind::Float },
+    { "control", Kind::Control },
 };
 
+std::string_view to_string(Method method)
+{
+    switch (method) {
+    case Method::Cin: return "cin";
+    case Method::Nonce: return "nonce";
+    case Method::Bufread: return "bufread";
+    default: [[unlikely]] return "unknown";
+    }
+}
+
+std::string_view to_string(Kind kind)
+{
+    switch (kind) {
+    case Kind::Int: return "int";
+    case Kind::Float: return "float";
+    case Kind::Control: return "control";
+    default: [[unlikely]] return "unknown";
+    }
+}
+
 template <typename T>
-void bench(auto& reader, bool print)
+void bench(auto&& reader, bool print)
 {
     namespace chr = std::chrono;
     using Clock   = chr::steady_clock;
@@ -79,7 +111,7 @@ void bench(auto& reader, bool print)
 
     auto start  = Clock::now();
     auto values = std::vector<Value>{};
-    auto count  = 0uz;
+    auto count  = 0ul;
 
     values.reserve(1'000'000);
     while (true) {
@@ -89,7 +121,7 @@ void bench(auto& reader, bool print)
         } else {
             values.push_back(std::move(result).value());
             if (print) {
-                fmt::println("value: {}", values.back());
+                println("value: {}", values.back());
             }
             ++count;
         }
@@ -100,60 +132,84 @@ void bench(auto& reader, bool print)
     using Ms = chr::milliseconds;
     auto ms  = chr::duration_cast<Ms>(elapsed);
 
-    std::println("Read {} lines in {}", count, ms);
+    println("Read {} lines in {}", count, ms);
+}
+
+std::variant<Args, int> parse(int argc, char** argv)
+{
+    auto args = Args{
+        .method  = Method::Nonce,
+        .kind    = Kind::Control,
+        .verbose = false,
+    };
+
+    for (auto i : std::views::iota(1, argc)) {
+        auto arg = std::string{ argv[i] };
+
+        if (arg == "--help" or arg == "-h") {
+            println(
+                "Usage: {} [OPTION]... KIND\n\n"
+                "Options:\n"
+                "   --cin       use cin instead\n"
+                "   --buf       use buffered read instead\n"
+                "   --verbose   Print output\n\n"
+                "Kind:\n"
+                "   {{ int | float | control }} (default: control)",
+                argv[0]
+            );
+            return 0;
+        }
+
+        else if (arg == "--cin") {
+            args.method = Method::Cin;
+        } else if (arg == "--buf") {
+            args.method = Method::Bufread;
+        } else if (arg == "--verbose") {
+            args.verbose = true;
+        } else if (auto found = kind_str.find(arg); found != kind_str.end()) {
+            args.kind = found->second;
+        } else {
+            println(stderr, "Unknown argument: {}", arg);
+            return 1;
+        }
+    }
+
+    return args;
 }
 
 int main(int argc, char** argv)
 {
-    auto app = CLI::App{ "linr bench" };
-
-    auto type     = Bench::Float;
-    auto use_cin  = false;
-    auto buf_read = false;
-    auto verbose  = false;
-
-    app.add_option("type", type, "The type to bench")
-        ->required()
-        ->transform(CLI::CheckedTransformer(TYPE_STR, CLI::ignore_case));
-    app.add_flag("--cin", use_cin, "Use cin instead");
-    app.add_flag("--buf", buf_read, "Use buffered read");
-    app.add_flag("--verbose", verbose, "Print output");
-
-    if (argc <= 1) {
-        std::print("{}", app.help());
-        return 0;
+    auto maybe_args = parse(argc, argv);
+    if (maybe_args.index() == 1) {
+        return std::get<1>(maybe_args);
     }
 
-    CLI11_PARSE(app, argc, argv);
+    auto args = std::get<0>(maybe_args);
+    println(
+        "Running bench: \n"
+        "- method : {}\n"
+        "- kind   : {}\n"
+        "- verbose: {}\n",
+        to_string(args.method),
+        to_string(args.kind),
+        args.verbose
+    );
 
-    switch (type) {
-    case Bench::Int:
-        if (use_cin) {
-            auto reader = CinReader{};
-            bench<int>(reader, verbose);
-        } else if (buf_read) {
-            auto reader = linr::BufReader{ 1024 };
-            bench<int>(reader, verbose);
-        } else {
-            auto reader = DefReader{};
-            bench<int>(reader, verbose);
+    switch (args.kind) {
+    case Kind::Int:
+        switch (args.method) {
+        case Method::Cin: bench<int>(CinReader{}, args.verbose); break;
+        case Method::Nonce: bench<int>(DefReader{}, args.verbose); break;
+        case Method::Bufread: bench<int>(linr::BufReader{ 1024 }, args.verbose); break;
         }
         break;
-    case Bench::Float:
-        if (use_cin) {
-            auto reader = CinReader{};
-            bench<float>(reader, verbose);
-        } else if (buf_read) {
-            auto reader = linr::BufReader{ 1024 };
-            bench<float>(reader, verbose);
-        } else {
-            auto reader = DefReader{};
-            bench<float>(reader, verbose);
+    case Kind::Float:
+        switch (args.method) {
+        case Method::Cin: bench<float>(CinReader{}, args.verbose); break;
+        case Method::Nonce: bench<float>(DefReader{}, args.verbose); break;
+        case Method::Bufread: bench<float>(linr::BufReader{ 1024 }, args.verbose); break;
         }
         break;
-    case Bench::Control: {
-        auto reader = EmptyReader{};
-        bench<float>(reader, verbose);
-    } break;
+    case Kind::Control: bench<float>(EmptyReader{}, args.verbose); break;
     }
 }

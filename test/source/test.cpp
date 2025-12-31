@@ -4,10 +4,15 @@
 #include <linr/read.hpp>
 
 #include <boost/ut.hpp>
-#include <fmt/core.h>
-#include <fmt/ranges.h>
+
+#include <source_location>
 
 namespace ut = boost::ut;
+
+template <typename Fn>
+concept Testcase = requires (Fn fn, std::string_view p, char d) {
+    { fn(p, d) };
+};
 
 struct Idk
 {
@@ -44,11 +49,13 @@ struct linr::CustomParser<Idk>
     }
 };
 
-void test(auto&& read)
+void test(auto&& read, std::source_location loc = std::source_location::current())
 {
     using namespace ut::literals;
 
-    "fundamental types can be parsed"_test = [] {
+    const auto name = std::format("[{}:{}]", loc.file_name(), loc.line());
+
+    ut::test("fundamental types can be parsed" + name) = [] {
         static_assert(linr::Parseable<bool>);
         static_assert(linr::Parseable<char>);
         static_assert(linr::Parseable<unsigned char>);
@@ -61,40 +68,40 @@ void test(auto&& read)
         static_assert(linr::Parseable<unsigned long long>);
     };
 
-    "custom type can be made Parseable"_test = [] {
+    ut::test("custom type can be made Parseable" + name) = [] {
         static_assert(linr::Parseable<Idk>);    //
     };
 
-    "read a string, a whole line of it"_test = [&] {
+    ut::test("read a string, a whole line of it" + name) = [&] {
         auto value = read.template operator()<>("insert a string: ").value();
-        fmt::println("value: '{}'", value);
+        std::cout << "value: " << value << '\n';
 
         // > read call above is equivalent to
         // auto value = read<std::string>(prompt, '\n');
     };
 
-    "read a string until delimiter reached"_test = [&] {
+    ut::test("read a string until delimiter reached" + name) = [&] {
         auto value = read.template operator()<std::string>("a string: ").value();
-        fmt::println("value: '{}'", value);
+        std::cout << "value: " << value << '\n';
     };
 
-    "read a single char value"_test = [&] {
+    ut::test("read a single char value" + name) = [&] {
         auto value = read.template operator()<char>("a char: ").value();
-        fmt::println("value: '{}'", value);
+        std::cout << "value: " << value << '\n';
     };
 
-    "multiple valued read - same type"_test = [&] {
-        auto value = read.template operator()<int, int, int>("3 int: ").value();
-        fmt::println("value: '{}'", value);
+    ut::test("multiple valued read - same type" + name) = [&] {
+        auto [i1, i2, i3] = read.template operator()<int, int, int>("3 int: ").value();
+        std::cout << "value: " << i1 << ", " << i2 << ", " << i3 << '\n';
     };
 
-    "multiple valued read - different types"_test = [&] {
-        auto value = read.template operator()<int, double, int>("an int, a double and an int: ").value();
-        fmt::println("value: '{}'", value);
+    ut::test("multiple valued read - different types" + name) = [&] {
+        auto [i1, d, i2] = read.template operator()<int, double, int>("an int, double and int: ").value();
+        std::cout << "value: " << i1 << ", " << d << ", " << i2 << '\n';
     };
 
     // read until get value
-    "read value until condition met"_test = [&] {
+    ut::test("read value until condition met" + name) = [&] {
         int result = 0;
         while (true) {
             auto value = read.template operator()<int>("please enter an integer: ");
@@ -105,29 +112,29 @@ void test(auto&& read)
 
             using E = linr::Error;
             switch (value.error()) {
-            case E::InvalidInput: fmt::println("Invalid input"); continue;
-            case E::OutOfRange: fmt::println("Input value is out of range"); continue;
+            case E::InvalidInput: std::cout << "Invalid input" << '\n'; continue;
+            case E::OutOfRange: std::cout << "Input value is out of range" << '\n'; continue;
             default: break;
             }
 
             value = 10;
             break;
         }
-        fmt::println("value: '{}'", result);
+        std::cout << "value: " << result << '\n';
     };
 
-    "read custom struct"_test = [&] {
+    ut::test("read custom struct" + name) = [&] {
         auto value = read.template operator()<Idk>("enter int and float separated by spaces: ", '\n').value();
-        fmt::println("value: '{}' | '{}'", value.m_int, value.m_float);
+        std::cout << "value: " << value.m_int << " | " << value.m_float << '\n';
     };
 
-    "read getline then parse the line into custom struct"_test = [&] {
+    ut::test("read getline then parse the line into custom struct" + name) = [&] {
         auto str = read.template operator()<>("enter int and float separated by spaces: ").value();
 
-        fmt::println(">>>>> {}", str);
+        std::cout << ">>>>> " << str << '\n';
 
         auto value = linr::parse<Idk>(str).value();
-        fmt::println("value: '{}' | '{}'", value.m_int, value.m_float);
+        std::cout << "value: " << value.m_int << " | " << value.m_float << '\n';
     };
 }
 

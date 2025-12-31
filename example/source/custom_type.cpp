@@ -1,7 +1,7 @@
+#include "print.hpp"
+
 #include <linr/parser.hpp>    // linr::CustomParser and linr::CustomParseable
 #include <linr/read.hpp>
-
-#include <fmt/core.h>
 
 struct Color
 {
@@ -49,7 +49,7 @@ struct linr::CustomParser<int>
     Result<int> parse(Str str) const noexcept
     {
         if (str != "42") {
-            fmt::println("not the answer to the ultimate question of life, the universe and everything!");
+            println("not the answer to the ultimate question of life, the universe and everything!");
             std::exit(42);
         }
         return 42;
@@ -66,10 +66,10 @@ int main()
             if (not result) {
                 using Err = linr::Error;
                 if (auto err = result.error(); err == Err::EndOfFile or err == Err::Unknown) {
-                    fmt::println("\nstdin got into unrecoverable state");
+                    println("\nstdin got into unrecoverable state");
                     std::exit(1);
                 } else {
-                    fmt::println("invalid input");
+                    println("invalid input");
                     continue;
                 }
             }
@@ -79,8 +79,8 @@ int main()
     };
 
     auto color = get_color();
-    fmt::println("color {} | {} | {}", color.m_r, color.m_g, color.m_b);
+    println("color {} | {} | {}", color.m_r, color.m_g, color.m_b);
 
     auto answer_to_everything = linr::read<int>("integer: ").value();
-    fmt::println("the answer to everything is: {}", answer_to_everything);
+    println("the answer to everything is: {}", answer_to_everything);
 }
