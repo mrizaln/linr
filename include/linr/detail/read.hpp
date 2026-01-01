@@ -9,9 +9,9 @@ namespace linr::detail
 {
     template <Parseable... Ts, LineReader R>
         requires (sizeof...(Ts) >= 1) and (std::movable<Ts> and ...)
-    Results<Ts...> read_impl(R& reader, Opt<Str> prompt, char delim) noexcept
+    Results<Ts...> read_impl(std::FILE* stream, R& reader, Opt<Str> prompt, char delim) noexcept
     {
-        if (std::ferror(stdin)) {
+        if (std::ferror(stream)) {
             return make_error<Tup<Ts...>>(Error::Unknown);
         }
 
@@ -19,7 +19,7 @@ namespace linr::detail
             std::fwrite(prompt->data(), sizeof(Str::value_type), prompt->size(), stdout);
         }
 
-        auto line = reader.readline();
+        auto line = reader.readline(stream);
         if (not line) {
             return make_error<Tup<Ts...>>(Error::EndOfFile);
         }
@@ -33,9 +33,9 @@ namespace linr::detail
 
     template <Parseable T, std::size_t N, LineReader R>
         requires (std::movable<T> and N > 0)
-    AResults<T, N> read_impl(R& reader, Opt<Str> prompt, char delim) noexcept
+    AResults<T, N> read_impl(std::FILE* stream, R& reader, Opt<Str> prompt, char delim) noexcept
     {
-        if (std::ferror(stdin)) {
+        if (std::ferror(stream)) {
             return make_error<Arr<T, N>>(Error::Unknown);
         }
 
@@ -43,7 +43,7 @@ namespace linr::detail
             std::fwrite(prompt->data(), sizeof(Str::value_type), prompt->size(), stdout);
         }
 
-        auto line = reader.readline();
+        auto line = reader.readline(stream);
         if (not line) {
             return make_error<Arr<T, N>>(Error::EndOfFile);
         }

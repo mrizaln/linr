@@ -16,7 +16,7 @@ namespace linr
     Results<Ts...> read(Opt<Str> prompt = std::nullopt, char delim = ' ') noexcept
     {
         auto reader = detail::Reader{};
-        return detail::read_impl<Ts...>(reader, prompt, delim);
+        return detail::read_impl<Ts...>(stdin, reader, prompt, delim);
     }
 
     /**
@@ -30,7 +30,7 @@ namespace linr
     Result<T> read(Opt<Str> prompt = std::nullopt, char delim = ' ') noexcept
     {
         auto reader = detail::Reader{};
-        auto result = detail::read_impl<T>(reader, prompt, delim);
+        auto result = detail::read_impl<T>(stdin, reader, prompt, delim);
         if (result) {
             return make_result<T>(std::get<0>(std::move(result).value()));
         }
@@ -45,7 +45,7 @@ namespace linr
     inline Result<std::string> read(Opt<Str> prompt = std::nullopt) noexcept
     {
         auto reader = detail::Reader{};
-        auto result = detail::read_impl<std::string>(reader, prompt, '\n');
+        auto result = detail::read_impl<std::string>(stdin, reader, prompt, '\n');
         if (result) {
             return make_result<std::string>(std::get<0>(std::move(result).value()));
         }
@@ -62,7 +62,7 @@ namespace linr
     AResults<T, N> read(Opt<Str> prompt = std::nullopt, char delim = ' ') noexcept
     {
         auto reader = detail::Reader{};
-        return detail::read_impl<T, N>(reader, prompt, delim);
+        return detail::read_impl<T, N>(stdin, reader, prompt, delim);
     }
 }
 

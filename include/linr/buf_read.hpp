@@ -12,19 +12,20 @@ namespace linr
     class BufReader
     {
     public:
-        struct Line
-        {
-            Str view() const noexcept { return m_str; }
-            Str m_str;
-        };
-
         BufReader(std::size_t size) noexcept
-            : m_reader{ size }
+            : m_stream{ stdin }
+            , m_reader{ size }
+        {
+        }
+
+        BufReader(std::FILE* stream, std::size_t size) noexcept
+            : m_stream{ stream }
+            , m_reader{ size }
         {
         }
 
         /**
-         * @brief Read multiple values from stdin as tuple.
+         * @brief Read multiple values from stream as tuple.
          *
          * @param prompt The prompt.
          * @param delim Delimiter, only `char` so you can't use unicode.
@@ -33,11 +34,11 @@ namespace linr
             requires (sizeof...(Ts) > 1) and (std::movable<Ts> and ...)
         Results<Ts...> read(Opt<Str> prompt = std::nullopt, char delim = ' ') noexcept
         {
-            return detail::read_impl<Ts...>(m_reader, prompt, delim);
+            return detail::read_impl<Ts...>(m_stream, m_reader, prompt, delim);
         }
 
         /**
-         * @brief Read a single value from stdin.
+         * @brief Read a single value from stream.
          *
          * @param prompt The prompt.
          * @param delim Delimiter, only `char` so you can't use unicode.
@@ -46,7 +47,7 @@ namespace linr
             requires std::movable<T>
         Result<T> read(Opt<Str> prompt = std::nullopt, char delim = ' ') noexcept
         {
-            auto result = detail::read_impl<T>(m_reader, prompt, delim);
+            auto result = detail::read_impl<T>(m_stream, m_reader, prompt, delim);
             if (result) {
                 return make_result<T>(std::get<0>(std::move(result).value()));
             }
@@ -60,7 +61,7 @@ namespace linr
          */
         Result<std::string> read(Opt<Str> prompt = std::nullopt) noexcept
         {
-            auto result = detail::read_impl<std::string>(m_reader, prompt, '\n');
+            auto result = detail::read_impl<std::string>(m_stream, m_reader, prompt, '\n');
             if (result) {
                 return make_result<std::string>(std::get<0>(std::move(result).value()));
             }
@@ -68,7 +69,7 @@ namespace linr
         }
 
         /**
-         * @brief Read multiple values from stdin as array.
+         * @brief Read multiple values from stream as array.
          *
          * @param prompt The prompt.
          * @param delim Delimiter, only `char` so you can't use unicode.
@@ -76,10 +77,15 @@ namespace linr
         template <typename T, std::size_t N>
         AResults<T, N> read(Opt<Str> prompt = std::nullopt, char delim = ' ') noexcept
         {
-            return detail::read_impl<T, N>(m_reader, prompt, delim);
+            return detail::read_impl<T, N>(m_stream, m_reader, prompt, delim);
         }
 
+        void set_stream(std::FILE* stream) { m_stream = stream; }
+
+        std::FILE* get_stream() const { return m_stream; }
+
     private:
+        std::FILE*        m_stream;
         detail::BufReader m_reader;
     };
 }

@@ -17,11 +17,11 @@ namespace linr::detail
     };
 
     template <typename R>
-    concept LineReader = requires (R r) {
+    concept LineReader = requires (R r, std::FILE* f) {
         typename R::Line;
         requires Line<typename R::Line>;
 
-        { r.readline() } noexcept -> std::same_as<Opt<typename R::Line>>;
+        { r.readline(f) } noexcept -> std::same_as<Opt<typename R::Line>>;
     };
 
 #if defined(__GLIBC__) and defined(LINR_ENABLE_GETLINE)
@@ -43,11 +43,11 @@ namespace linr::detail
             std::size_t m_size;
         };
 
-        Opt<Line> readline() const noexcept
+        Opt<Line> readline(std::FILE* stream) const noexcept
         {
             char*  line  = nullptr;
             size_t len   = 0;
-            auto   nread = getline(&line, &len, stdin);
+            auto   nread = getline(&line, &len, stream);
 
             if (nread == -1) {
                 free(line);
@@ -112,9 +112,9 @@ namespace linr::detail
         BufGetlineReader(const BufGetlineReader&)            = delete;
         BufGetlineReader& operator=(const BufGetlineReader&) = delete;
 
-        Opt<Line> readline() noexcept
+        Opt<Line> readline(std::FILE* stream) noexcept
         {
-            auto nread = getline(&m_buf, &m_size, stdin);
+            auto nread = getline(&m_buf, &m_size, stream);
             if (nread == -1) {
                 return {};
             } else if (m_buf[nread - 1] == '\n') {
@@ -142,14 +142,14 @@ namespace linr::detail
             Data m_data;
         };
 
-        Opt<Line> readline() const noexcept
+        Opt<Line> readline(std::FILE* stream) const noexcept
         {
             auto        line   = Line::Data(256, '\0');
             std::size_t offset = 0;
             bool        first  = true;
 
             while (true) {
-                auto res = std::fgets(line.data() + offset, static_cast<int>(line.size() - offset), stdin);
+                auto res = std::fgets(line.data() + offset, static_cast<int>(line.size() - offset), stream);
                 if (res == nullptr and first) {
                     return {};
                 }
@@ -196,14 +196,14 @@ namespace linr::detail
         BufFgetsReader(const BufFgetsReader&)            = delete;
         BufFgetsReader& operator=(const BufFgetsReader&) = delete;
 
-        Opt<Line> readline() noexcept
+        Opt<Line> readline(std::FILE* stream) noexcept
         {
             std::ranges::fill(m_buf, '\0');
 
             std::size_t offset = 0;
             bool        first  = true;
             while (true) {
-                auto res = std::fgets(m_buf.data() + offset, static_cast<int>(m_buf.size() - offset), stdin);
+                auto res = std::fgets(m_buf.data() + offset, static_cast<int>(m_buf.size() - offset), stream);
                 if (res == nullptr and first) {
                     return {};
                 }
