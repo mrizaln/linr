@@ -7,11 +7,6 @@
 
 namespace ut = boost::ut;
 
-template <typename Fn>
-concept Testcase = requires (Fn fn, std::string_view p, char d) {
-    { fn(p, d) };
-};
-
 struct Idk
 {
     Idk(const Idk&)            = delete;
@@ -60,6 +55,13 @@ struct DefReader
     auto read(auto&&... args)
     {
         return linr::read<Ts...>(std::forward<decltype(args)>(args)...);
+    }
+
+    template <typename T, std::size_t N>
+        requires (N >= 1)
+    auto read(auto&&... args)
+    {
+        return linr::read<T, N>(std::forward<decltype(args)>(args)...);
     }
 };
 
@@ -131,6 +133,18 @@ void test(R&& reader)
 
         auto value = linr::parse<Idk>(str).value();
         std::cout << "value: " << value.m_int << " | " << value.m_float << '\n';
+    };
+
+    ut::test("read multiple integers into array" + name) = [&] {
+        auto v = reader.template read<int, 5>("5 int: ").value();
+        std::cout << "value: ";
+        for (auto first = true; const auto& e : v) {
+            if (not std::exchange(first, false)) {
+                std::cout << ", ";
+            }
+            std::cout << e;
+        }
+        std::cout << '\n';
     };
 }
 
